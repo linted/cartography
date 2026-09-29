@@ -6,6 +6,7 @@ import cartography.intel.langsmith.agent_auth
 import cartography.intel.langsmith.apikeys
 import cartography.intel.langsmith.deployments
 import cartography.intel.langsmith.organizations
+import cartography.intel.langsmith.projects
 import cartography.intel.langsmith.roles
 import cartography.intel.langsmith.sso
 import cartography.intel.langsmith.users
@@ -84,6 +85,10 @@ def start_langsmith_ingestion(neo4j_session: neo4j.Session, config: Config) -> N
 
         cartography.intel.langsmith.sso.sync(
             neo4j_session, client, org_id, org_common_job_parameters
+        )
+
+        cartography.intel.langsmith.projects.sync(
+            neo4j_session, client, org_id, workspaces, org_common_job_parameters
         )
 
         agents, _, deployments_complete = cartography.intel.langsmith.deployments.sync(
