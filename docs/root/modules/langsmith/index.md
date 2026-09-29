@@ -116,6 +116,30 @@ matching on the `provider_id` slug. The slug is operator-chosen, so two organiza
 both define one called `github-prod`, and relationship matching carries no implicit
 organization constraint.
 
+## Tracing projects and retention
+
+`LangSmithProject` nodes come from the metadata-only `GET /api/v1/sessions` listing,
+scoped to each workspace with `X-Tenant-Id`. Each project has an organization `RESOURCE`
+edge and a workspace `CONTAINS` edge. A deployment's existing `tracer_session_id` creates
+`(:LangSmithDeployment)-[:TRACES_TO]->(:LangSmithProject)` when that project is visible.
+No runs or trace contents are requested.
+
+The project's nullable `trace_tier` is its configured tier: `longlived`, `shortlived`, or
+unset. `GET /api/v1/orgs/ttl-settings` provides `default_trace_tier` rows with a null
+`tenant_id` for the organization or a workspace `tenant_id` for a workspace override.
+The node keeps those defaults separately and derives `effective_trace_tier` in project,
+workspace, then organization order. A missing readable default leaves the effective tier
+unset. `GET /workspaces/current/ttl-settings` provides a workspace's confirmed
+`longlived_ttl_days`; `effective_longlived_ttl_days` is populated only for projects
+whose effective tier is `longlived`.
+
+The API does not expose a per-project duration or a short-lived duration through these
+read endpoints, so neither is inferred. The TTL endpoints also return
+`apply_to_all_projects` and `is_custom`, which describe settings behavior; neither is a
+duration. If a project listing is incomplete or unauthorized, project cleanup is skipped.
+If the organization settings cannot be read, project ingestion for that organization is
+skipped so previously confirmed retention is preserved.
+
 ## What this module deliberately does not ingest
 
 ```{note}
@@ -133,8 +157,8 @@ what it stores.
   view comes from the per-agent connection route instead.
 * **Audit logs.** Time-series data rather than graph-shaped; out of scope.
 * **Resource taggings.** The tag vocabulary is ingested as `LangSmithResourceTag`, but
-  the edges attaching tags to individual projects, datasets and prompts are not, because
-  those resource types are outside this module's scope.
+  the edges attaching tags to individual projects, datasets and prompts are not yet
+  ingested.
 * **SCIM group membership.** `/scim/v2/Groups` requires a SCIM token rather than a
   personal access token, so group membership is not reachable. The SCIM *token*
   inventory is collected.

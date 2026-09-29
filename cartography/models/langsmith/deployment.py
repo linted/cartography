@@ -134,6 +134,19 @@ class LangSmithDeploymentToAgentRel(CartographyRelSchema):
 
 
 @dataclass(frozen=True)
+class LangSmithDeploymentToProjectRel(CartographyRelSchema):
+    target_node_label: str = "LangSmithProject"
+    target_node_matcher: TargetNodeMatcher = make_target_node_matcher(
+        {"id": PropertyRef("tracer_session_id")}
+    )
+    direction: LinkDirection = LinkDirection.OUTWARD
+    rel_label: str = "TRACES_TO"
+    properties: LangSmithDeploymentToAgentRelProperties = (
+        LangSmithDeploymentToAgentRelProperties()
+    )
+
+
+@dataclass(frozen=True)
 class LangSmithDeploymentSchema(CartographyNodeSchema):
     """A LangGraph Platform deployment serving an agent."""
 
@@ -146,5 +159,6 @@ class LangSmithDeploymentSchema(CartographyNodeSchema):
         [
             LangSmithDeploymentToWorkspaceRel(),
             LangSmithDeploymentToAgentRel(),
+            LangSmithDeploymentToProjectRel(),
         ],
     )
